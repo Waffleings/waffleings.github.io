@@ -1,67 +1,81 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Tardy Leaderboard</title>
+<meta charset="UTF-8">
+<title>Tardy Rankings</title>
 
 <style>
 body{
     font-family: Arial, sans-serif;
-    background:#f4f4f4;
-    text-align:center;
-    color:#222;
+    margin: 0;
+    background: white;
 }
 
-.board{
-    max-width:500px;
-    margin:40px auto;
-    background:white;
-    padding:20px;
-    border-radius:10px;
-    box-shadow:0 2px 8px rgba(0,0,0,0.1);
+table{
+    border-collapse: collapse;
+    width: 700px;
 }
 
-.person{
-    font-size:1.3em;
-    padding:12px;
-    border-bottom:1px solid #ddd;
+th{
+    background: #e6e6e6;
+    text-align: left;
+    padding: 8px;
+    border: 1px solid #bfbfbf;
 }
 
-.person:last-child{
-    border-bottom:none;
+td{
+    padding: 8px;
+    border: 1px solid #bfbfbf;
 }
 
 .rank{
-    display:inline-block;
-    width:40px;
+    width: 80px;
+}
+
+.name{
+    width: 400px;
+}
+
+.score{
+    width: 120px;
 }
 </style>
 </head>
 <body>
 
-<div class="board">
-    <h1>Tardy Leaderboard</h1>
-    <div id="list"></div>
-</div>
+<table id="leaderboard">
+    <tr>
+        <th>Rank</th>
+        <th>Name</th>
+        <th>Tardies</th>
+    </tr>
+</table>
 
 <script>
+
 let people = [
-    {name:"Caeden", tardies:3},
-    {name:"Tanner", tardies:3}
+    {name: "Caeden", tardies: 3},
+    {name: "Tanner", tardies: 3}
 ];
 
-people.sort((a,b)=>b.tardies-a.tardies);
+people.sort((a,b) => b.tardies - a.tardies);
 
 const medals = ["🥇","🥈","🥉"];
-const list = document.getElementById("list");
+const table = document.getElementById("leaderboard");
 
-people.forEach((person,index)=>{
-    list.innerHTML += `
-        <div class="person">
-            <span class="rank">${medals[index] || "#" + (index+1)}</span>
-            <strong>${person.name}</strong> - ${person.tardies}
-        </div>
+people.forEach((person,index) => {
+
+    let rank = medals[index] || "#" + (index + 1);
+
+    table.innerHTML += `
+        <tr>
+            <td class="rank">${rank}</td>
+            <td class="name">${person.name}</td>
+            <td class="score">${person.tardies}</td>
+        </tr>
     `;
 });
+
 </script>
 
 </body>

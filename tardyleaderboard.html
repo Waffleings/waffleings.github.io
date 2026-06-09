@@ -11,37 +11,42 @@ body{
     background: white;
 }
 
+.header{
+    background: #000;
+    color: #ffd800;
+    font-size: 24px;
+    font-weight: bold;
+    padding: 12px;
+}
+
 table{
+    width: 100%;
     border-collapse: collapse;
-    width: 700px;
 }
 
 th{
-    background: #e6e6e6;
+    background: #ececec;
     text-align: left;
     padding: 8px;
-    border: 1px solid #bfbfbf;
+    border: 1px solid #c0c0c0;
+    font-weight: normal;
 }
 
 td{
     padding: 8px;
-    border: 1px solid #bfbfbf;
+    border: 1px solid #c0c0c0;
 }
 
-.rank{
-    width: 80px;
-}
-
-.name{
-    width: 400px;
-}
-
-.score{
-    width: 120px;
+tr:nth-child(even){
+    background: #f8f8f8;
 }
 </style>
 </head>
 <body>
+
+<div class="header">
+    Tardy Rankings
+</div>
 
 <table id="leaderboard">
     <tr>
@@ -52,7 +57,6 @@ td{
 </table>
 
 <script>
-
 let people = [
     {name: "Caeden", tardies: 3},
     {name: "RandomTestperson", tardies: 1},
@@ -60,24 +64,23 @@ let people = [
     {name: "Tanner", tardies: 3}
 ];
 
+// Sort highest tardies first
 people.sort((a,b) => b.tardies - a.tardies);
 
 const medals = ["🥇","🥈","🥉"];
 const table = document.getElementById("leaderboard");
 
 people.forEach((person,index) => {
-
     let rank = medals[index] || "#" + (index + 1);
 
     table.innerHTML += `
         <tr>
-            <td class="rank">${rank}</td>
-            <td class="name">${person.name}</td>
-            <td class="score">${person.tardies}</td>
+            <td>${rank}</td>
+            <td>${person.name}</td>
+            <td>${person.tardies}</td>
         </tr>
     `;
 });
-
 </script>
 
 </body>

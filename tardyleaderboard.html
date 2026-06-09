@@ -1,143 +1,67 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tardy Leaderboard</title>
 
 <style>
 body{
     font-family: Arial, sans-serif;
-    background: linear-gradient(135deg,#4f46e5,#7c3aed);
-    color:white;
-    margin:0;
-    padding:20px;
-}
-
-.container{
-    max-width:1000px;
-    margin:auto;
-}
-
-h1{
+    background:#f4f4f4;
     text-align:center;
+    color:#222;
 }
 
-.card{
-    background:rgba(255,255,255,0.12);
+.board{
+    max-width:500px;
+    margin:40px auto;
+    background:white;
     padding:20px;
-    border-radius:20px;
-    margin-bottom:20px;
+    border-radius:10px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.1);
 }
 
-.top3{
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:15px;
-}
-
-.medal{
-    padding:20px;
-    border-radius:15px;
-    text-align:center;
-    font-size:1.2em;
-    font-weight:bold;
-}
-
-.gold{
-    background:gold;
-    color:black;
-}
-
-.silver{
-    background:silver;
-    color:black;
-}
-
-.bronze{
-    background:#cd7f32;
-}
-
-table{
-    width:100%;
-    border-collapse:collapse;
-}
-
-th,td{
+.person{
+    font-size:1.3em;
     padding:12px;
-    text-align:left;
+    border-bottom:1px solid #ddd;
 }
 
-tr:nth-child(even){
-    background:rgba(255,255,255,0.08);
+.person:last-child{
+    border-bottom:none;
+}
+
+.rank{
+    display:inline-block;
+    width:40px;
 }
 </style>
 </head>
 <body>
 
-<div class="container">
-
-<h1>🏆 Tardy Leaderboard 🏆</h1>
-
-<div class="card">
-    <h2>Top 3 Most Tardy</h2>
-    <div class="top3" id="top3"></div>
-</div>
-
-<div class="card">
-    <h2>All Students</h2>
-
-    <table>
-        <thead>
-            <tr>
-                <th>Rank</th>
-                <th>Name</th>
-                <th>Tardies</th>
-            </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-    </table>
-</div>
-
+<div class="board">
+    <h1>Tardy Leaderboard</h1>
+    <div id="list"></div>
 </div>
 
 <script>
-
-
 let people = [
     {name:"Caeden", tardies:3},
-    {name:"Tanner", tardies:3},
+    {name:"Tanner", tardies:3}
 ];
 
 people.sort((a,b)=>b.tardies-a.tardies);
 
-const top3 = document.getElementById("top3");
-
 const medals = ["🥇","🥈","🥉"];
-const classes = ["gold","silver","bronze"];
-
-for(let i=0;i<3 && i<people.length;i++){
-    top3.innerHTML += `
-        <div class="medal ${classes[i]}">
-            ${medals[i]}<br><br>
-            ${people[i].name}<br>
-            ${people[i].tardies} tardies
-        </div>
-    `;
-}
-
-const tableBody = document.getElementById("tableBody");
+const list = document.getElementById("list");
 
 people.forEach((person,index)=>{
-    tableBody.innerHTML += `
-        <tr>
-            <td>#${index+1}</td>
-            <td>${person.name}</td>
-            <td>${person.tardies}</td>
-        </tr>
+    list.innerHTML += `
+        <div class="person">
+            <span class="rank">${medals[index] || "#" + (index+1)}</span>
+            <strong>${person.name}</strong> - ${person.tardies}
+        </div>
     `;
 });
-
 </script>
 
 </body>

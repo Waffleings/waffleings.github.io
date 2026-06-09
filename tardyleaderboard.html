@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tardy Leaderboard</title>
+
+<style>
+body{
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg,#4f46e5,#7c3aed);
+    color:white;
+    margin:0;
+    padding:20px;
+}
+
+.container{
+    max-width:1000px;
+    margin:auto;
+}
+
+h1{
+    text-align:center;
+}
+
+.card{
+    background:rgba(255,255,255,0.12);
+    padding:20px;
+    border-radius:20px;
+    margin-bottom:20px;
+}
+
+.top3{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:15px;
+}
+
+.medal{
+    padding:20px;
+    border-radius:15px;
+    text-align:center;
+    font-size:1.2em;
+    font-weight:bold;
+}
+
+.gold{
+    background:gold;
+    color:black;
+}
+
+.silver{
+    background:silver;
+    color:black;
+}
+
+.bronze{
+    background:#cd7f32;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+th,td{
+    padding:12px;
+    text-align:left;
+}
+
+tr:nth-child(even){
+    background:rgba(255,255,255,0.08);
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h1>🏆 Tardy Leaderboard 🏆</h1>
+
+<div class="card">
+    <h2>Top 3 Most Tardy</h2>
+    <div class="top3" id="top3"></div>
+</div>
+
+<div class="card">
+    <h2>All Students</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Rank</th>
+                <th>Name</th>
+                <th>Tardies</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+</div>
+
+</div>
+
+<script>
+
+// =====================================
+// EDIT THIS LIST TO ADD PEOPLE
+// =====================================
+
+let people = [
+    {name:"John", tardies:12},
+    {name:"Sarah", tardies:8},
+    {name:"Bob", tardies:20},
+    {name:"Emma", tardies:15},
+    {name:"Mike", tardies:3}
+];
+
+// =====================================
+
+people.sort((a,b)=>b.tardies-a.tardies);
+
+const top3 = document.getElementById("top3");
+
+const medals = ["🥇","🥈","🥉"];
+const classes = ["gold","silver","bronze"];
+
+for(let i=0;i<3 && i<people.length;i++){
+    top3.innerHTML += `
+        <div class="medal ${classes[i]}">
+            ${medals[i]}<br><br>
+            ${people[i].name}<br>
+            ${people[i].tardies} tardies
+        </div>
+    `;
+}
+
+const tableBody = document.getElementById("tableBody");
+
+people.forEach((person,index)=>{
+    tableBody.innerHTML += `
+        <tr>
+            <td>#${index+1}</td>
+            <td>${person.name}</td>
+            <td>${person.tardies}</td>
+        </tr>
+    `;
+});
+
+</script>
+
+</body>
+</html>

@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Tardy Rankings</title>
+<title>PlusPortals Rankings</title>
 
 <style>
 body{
@@ -17,6 +17,22 @@ body{
     font-size: 24px;
     font-weight: bold;
     padding: 12px;
+}
+
+.boards{
+    display: flex;
+    gap: 20px;
+    padding: 10px;
+}
+
+.board{
+    flex: 1;
+}
+
+.board h2{
+    margin: 0 0 10px 0;
+    font-size: 20px;
+    font-weight: normal;
 }
 
 table{
@@ -45,39 +61,74 @@ tr:nth-child(even){
 <body>
 
 <div class="header">
-    Tardy Rankings
+    PlusPortals Rankings
 </div>
 
-<table id="leaderboard">
-    <tr>
-        <th>Rank</th>
-        <th>Name</th>
-        <th>Tardies</th>
-    </tr>
-</table>
+<div class="boards">
+
+    <div class="board">
+        <h2>Tardy Rankings</h2>
+        <table id="tardyLeaderboard">
+            <tr>
+                <th>Rank</th>
+                <th>Name</th>
+                <th>Tardies</th>
+            </tr>
+        </table>
+    </div>
+
+    <div class="board">
+        <h2>Absence Rankings</h2>
+        <table id="absenceLeaderboard">
+            <tr>
+                <th>Rank</th>
+                <th>Name</th>
+                <th>Absences</th>
+            </tr>
+        </table>
+    </div>
+
+</div>
 
 <script>
 let people = [
-    {name: "Caeden", tardies: 3},
-    {name: "RandomTestperson", tardies: 1},
-    {name: "testguy", tardies: 2},
-    {name: "Tanner", tardies: 3}
+    {name: "Aidan", tardies: 54, absences: 55},
+    {name: "Bobby", tardies: 24, absences: 23},
+    {name: "Dylan", tardies: 6, absences: 67},
+    {name: "Caeden", tardies: 3, absences: 3},
+    {name: "Tanner", tardies: 3, absences: 3}
 ];
 
-// Sort highest tardies first
-people.sort((a,b) => b.tardies - a.tardies);
-
 const medals = ["🥇","🥈","🥉"];
-const table = document.getElementById("leaderboard");
 
-people.forEach((person,index) => {
+// Tardy leaderboard
+let tardyPeople = [...people].sort((a,b) => b.tardies - a.tardies);
+const tardyTable = document.getElementById("tardyLeaderboard");
+
+tardyPeople.forEach((person,index) => {
     let rank = medals[index] || "#" + (index + 1);
 
-    table.innerHTML += `
+    tardyTable.innerHTML += `
         <tr>
             <td>${rank}</td>
             <td>${person.name}</td>
             <td>${person.tardies}</td>
+        </tr>
+    `;
+});
+
+// Absence leaderboard
+let absencePeople = [...people].sort((a,b) => b.absences - a.absences);
+const absenceTable = document.getElementById("absenceLeaderboard");
+
+absencePeople.forEach((person,index) => {
+    let rank = medals[index] || "#" + (index + 1);
+
+    absenceTable.innerHTML += `
+        <tr>
+            <td>${rank}</td>
+            <td>${person.name}</td>
+            <td>${person.absences}</td>
         </tr>
     `;
 });

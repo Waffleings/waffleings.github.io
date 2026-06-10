@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Absence Rankings</title>
+
+<style>
+body{
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background: white;
+}
+
+.header{
+    background: #000;
+    color: #ffd800;
+    font-size: 24px;
+    font-weight: bold;
+    padding: 12px;
+}
+
+table{
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th{
+    background: #ececec;
+    text-align: left;
+    padding: 8px;
+    border: 1px solid #c0c0c0;
+    font-weight: normal;
+}
+
+td{
+    padding: 8px;
+    border: 1px solid #c0c0c0;
+}
+
+tr:nth-child(even){
+    background: #f8f8f8;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+    Tardy Rankings
+</div>
+
+<table id="leaderboard">
+    <tr>
+        <th>Rank</th>
+        <th>Name</th>
+        <th>Absences</th>
+    </tr>
+</table>
+
+<script>
+let people = [
+    {name: "Caeden", absences: 3},
+    {name: "RandomTestperson", absences: 1},
+    {name: "testguy", absences: 2},
+    {name: "Tanner", absences: 3}
+];
+
+// Sort highest absences first
+people.sort((a,b) => b.absences - a.absences);
+
+const medals = ["🥇","🥈","🥉"];
+const table = document.getElementById("leaderboard");
+
+people.forEach((person,index) => {
+    let rank = medals[index] || "#" + (index + 1);
+
+    table.innerHTML += `
+        <tr>
+            <td>${rank}</td>
+            <td>${person.name}</td>
+            <td>${person.absences}</td>
+        </tr>
+    `;
+});
+</script>
+
+</body>
+</html>

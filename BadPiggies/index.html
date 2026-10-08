@@ -1,50 +1,28 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<html>
+  <head>
+
+<script src="/js/all.js"></script>
+
+
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Bad Piggies</title>
-
-    <script src="ruffle/ruffle.js"></script>
-
-    <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            background: black;
-            overflow: hidden;
-        }
-
-        #game {
-            width: 100%;
-            height: 100%;
-        }
-
-        ruffle-player {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
-    </style>
-</head>
-
-<body>
-    <div id="game"></div>
-
+    <style>html{background-color:#000;}</style>
+  </head>
+  <body>
+    <div id="ruffle" width="100%" height="100%"></div>
+    <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
     <script>
-        window.addEventListener("DOMContentLoaded", () => {
-            const ruffle = window.RufflePlayer.newest();
-            const player = ruffle.createPlayer();
-
-            document.getElementById("game").appendChild(player);
-
-            player.style.width = "100%";
-            player.style.height = "100%";
-
-            player.ruffle().load("BadPiggies.swf");
-        });
+      window.RufflePlayer = window.RufflePlayer || {};
+      window.addEventListener("load", (event) => {
+        const ruffle = window.RufflePlayer.newest();
+        const player = ruffle.createPlayer();
+        const container = document.getElementById("ruffle");
+        player.id = "player";
+        player.style.width = "100%";
+        player.style.height = "100%";
+        container.appendChild(player);
+        player.load("badpiggies.swf");
+      });
     </script>
-</body>
+  </body>
 </html>

@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Waffles Movies</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 18px; color: #111; background: #fff; font: 16px Arial, Helvetica, sans-serif; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+h1 { font-size: 22px; font-weight: 400; margin: 0; }
+.controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+button, input { font: inherit; }
+button { background: #fff; color: #111; border: 1px solid #999; border-radius: 2px; padding: 6px 9px; cursor: pointer; }
+button:hover { background: #f2f2f2; }
+#libraryName { width: 150px; max-width: 100%; padding: 6px; border: 1px solid #999; border-radius: 2px; }
+#search { width: min(100%, 300px); padding: 7px; border: 1px solid #999; border-radius: 2px; margin: 0 0 12px; }
+#count { font-size: 13px; color: #444; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 14px; }
+.movie-card { min-width: 0; color: #111; text-decoration: none; }
+.poster-wrap { aspect-ratio: 2 / 3; background: #f2f2f2; }
+.poster { display: block; width: 100%; height: 100%; object-fit: cover; }
+.movie-title { margin-top: 5px; line-height: 1.3; overflow-wrap: anywhere; }
+.empty { color: #444; padding: 16px 0; }
+@media (max-width: 480px) { body { margin: 10px; } .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Waffles Movies</h1>
+  <div class="controls">
+    <label for="libraryName">Library name</label>
+    <input id="libraryName" type="text" value="Waffles Movies" maxlength="80" aria-label="Library name">
+    <button type="button" id="importButton" title="Replace this library with an imported library">Import Library</button>
+    <button type="button" id="saveButton" title="Save this library as a portable JSON file">Save Library</button>
+    <button type="button" id="mergeButton" title="Add movies from another library without duplicates">Merge Library</button>
+    <input hidden type="file" id="importFile" accept=".html,.htm,.json,text/html,application/json">
+    <input hidden type="file" id="mergeFile" accept=".html,.htm,.json,text/html,application/json">
+  </div>
+</header>
+<input id="search" type="search" placeholder="Search movies" aria-label="Search movies">
+<span id="count"></span>
+<section class="grid" id="grid" aria-label="Movie library"></section>
+
+<!-- The movie entries are embedded here so the page works as a self-contained catalog. Save Library exports them as portable JSON. -->
+<script id="waffles-movies-library" type="application/json">[]</script>
+<script>
+(() => {
+  const libraryData = document.getElementById('waffles-movies-library');
+  let movieLibrary = readEmbeddedLibrary();
+  const grid = document.getElementById('grid');
+  const search = document.getElementById('search');
+  const count = document.getElementById('count');
+  const importFile = document.getElementById('importFile');
+  const mergeFile = document.getElementById('mergeFile');
+  const libraryNameInput = document.getElementById('libraryName');
+
+  function readEmbeddedLibrary() {
+    try {
+      const parsed = JSON.parse(libraryData.textContent);
+      return Array.isArray(parsed) ? parsed.map(normalizeMovie).filter(Boolean) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function normalizeMovie(movie) {
+    if (!movie || typeof movie !== 'object') return null;
+    const title = String(movie.title || movie.name || '').trim();
+    if (!title) return null;
+    const link = String(movie.link || movie.url || movie.driveUrl || '').trim();
+    const poster = String(movie.poster || movie.cover || movie.image || '').trim();
+    return { title, link, poster };
+  }
+
+  function renderMovies() {
+    const query = search.value.trim().toLocaleLowerCase();
+    const matches = movieLibrary.filter(movie => movie.title.toLocaleLowerCase().includes(query));
+    grid.replaceChildren();
+    count.textContent = `${movieLibrary.length} movie${movieLibrary.length === 1 ? '' : 's'}`;
+
+    for (const movie of matches) {
+      const card = movie.link ? document.createElement('a') : document.createElement('div');
+      card.className = 'movie-card';
+      if (movie.link) {
+        card.href = movie.link;
+        card.target = '_blank';
+        card.rel = 'noopener noreferrer';
+        card.setAttribute('aria-label', `Open ${movie.title} in Google Drive`);
+      }
+      const posterWrap = document.createElement('div');
+      posterWrap.className = 'poster-wrap';
+      if (movie.poster) {
+        const poster = document.createElement('img');
+        poster.className = 'poster';
+        poster.loading = 'lazy';
+        poster.alt = `${movie.title} poster`;
+        poster.src = movie.poster;
+        poster.addEventListener('error', () => {
+          poster.remove();
+          posterWrap.textContent = 'Poster unavailable';
+          posterWrap.style.display = 'grid';
+          posterWrap.style.placeItems = 'center';
+          posterWrap.style.fontSize = '12px';
+          posterWrap.style.color = '#555';
+        }, { once: true });
+        posterWrap.appendChild(poster);
+      } else {
+        posterWrap.textContent = 'No poster';
+        posterWrap.style.display = 'grid';
+        posterWrap.style.placeItems = 'center';
+        posterWrap.style.fontSize = '12px';
+        posterWrap.style.color = '#555';
+      }
+      const title = document.createElement('div');
+      title.className = 'movie-title';
+      title.textContent = movie.title;
+      card.append(posterWrap, title);
+      grid.appendChild(card);
+    }
+
+    if (matches.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.textContent = movieLibrary.length === 0
+        ? 'This library is empty. Use Waffles Library Creator to add movies, then choose Import Library.'
+        : 'No movies found.';
+      grid.appendChild(empty);
+    }
+  }
+
+  function decodeLegacyLibrary(encoded) {
+    const binary = atob(encoded);
+    const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }
+
+  function unpackLibrary(payload, fallbackName = '') {
+    let list;
+    let name = fallbackName;
+    if (Array.isArray(payload)) {
+      list = payload;
+    } else if (payload && typeof payload === 'object') {
+      name = String(payload.name || payload.libraryName || fallbackName || '').trim();
+      if (Array.isArray(payload.movies)) list = payload.movies;
+      else if (Array.isArray(payload.library)) list = payload.library;
+    }
+    if (!Array.isArray(list)) throw new Error('The file does not contain a supported movie list.');
+    return { name, movies: list.map(normalizeMovie).filter(Boolean) };
+  }
+
+  function parseLibraryText(text, fileName) {
+    const fallbackName = String(fileName || '')
+      .replace(/\.(json|html?)$/i, '')
+      .replace(/[_-]+/g, ' ')
+      .trim();
+
+    // Current portable library format: JSON with a name, save date, stats, and movie entries.
+    if (/\.json$/i.test(fileName)) {
+      return unpackLibrary(JSON.parse(text), fallbackName);
+    }
+
+    // Import previous standalone HTML libraries for backwards compatibility.
+    const doc = new DOMParser().parseFromString(text, 'text/html');
+    const htmlName = (doc.querySelector('h1')?.textContent || doc.title || fallbackName || '').trim();
+    const embedded = doc.querySelector('#waffles-movies-library');
+    if (embedded) {
+      return unpackLibrary(JSON.parse(embedded.textContent), htmlName);
+    }
+
+    // Compatibility with older BCAMOVIES catalogs. Older versions stored
+    // the main collection and the extra collection in separate metadata tags.
+    const legacyMainMeta = doc.querySelector('meta[name="bca-library"]');
+    const legacyExtraMeta = doc.querySelector('meta[name="bca-extra-library"]');
+    if ((legacyMainMeta && legacyMainMeta.content) || (legacyExtraMeta && legacyExtraMeta.content)) {
+      const legacyMovies = [];
+      if (legacyMainMeta && legacyMainMeta.content) {
+        legacyMovies.push(...unpackLibrary(decodeLegacyLibrary(legacyMainMeta.content), htmlName).movies);
+      }
+      if (legacyExtraMeta && legacyExtraMeta.content) {
+        legacyMovies.push(...unpackLibrary(decodeLegacyLibrary(legacyExtraMeta.content), htmlName).movies);
+      }
+      const uniqueMovies = [];
+      for (const movie of legacyMovies) {
+        if (!uniqueMovies.some(existing => isDuplicate(movie, existing))) uniqueMovies.push(movie);
+      }
+      return { name: htmlName || fallbackName, movies: uniqueMovies };
+    }
+
+    // Compatibility with earlier Waffles Movies HTML versions using a JS array.
+    const oldScript = text.match(/const\s+movieLibrary\s*=\s*(\[[\s\S]*?\])\s*;/);
+    if (oldScript) return unpackLibrary(JSON.parse(oldScript[1]), htmlName);
+
+    // Permit JSON libraries even if a user gave the file an .html extension.
+    try {
+      return unpackLibrary(JSON.parse(text), fallbackName);
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        throw new Error('This file does not contain a supported movie library.');
+      }
+      throw error;
+    }
+  }
+
+  function canonicalMovieLink(link) {
+    const value = String(link || '').trim();
+    if (!value) return '';
+    try {
+      const url = new URL(value);
+      if (url.hostname === 'drive.google.com' || url.hostname.endsWith('.google.com')) {
+        const filePath = url.pathname.match(/\/file\/d\/([^/]+)/i);
+        const id = (filePath && filePath[1]) || url.searchParams.get('id');
+        if (id) return `drive:${id}`;
+      }
+      url.hash = '';
+      return url.href.replace(/\/$/, '');
+    } catch {
+      return value;
+    }
+  }
+
+  function isDuplicate(movie, existing) {
+    if (movie.link && existing.link) return canonicalMovieLink(movie.link) === canonicalMovieLink(existing.link);
+    return movie.title.toLocaleLowerCase() === existing.title.toLocaleLowerCase();
+  }
+
+  async function loadLibraryFile(file, mode) {
+    if (!file) return;
+    try {
+      const importedLibrary = parseLibraryText(await file.text(), file.name);
+      const imported = importedLibrary.movies;
+      if (!imported.length && mode === 'merge') {
+        alert('That library contains no valid movies to merge.');
+        return;
+      }
+      if (mode === 'import') {
+        if (!confirm(`Import ${imported.length} movies and replace the current library?`)) return;
+        movieLibrary = imported;
+        libraryNameInput.value = importedLibrary.name || file.name.replace(/\.(json|html?)$/i, '').replace(/[_-]+/g, ' ');
+        alert(`Imported ${imported.length} movies from "${libraryNameInput.value}".`);
+      } else {
+        let added = 0;
+        for (const movie of imported) {
+          if (!movieLibrary.some(existing => isDuplicate(movie, existing))) {
+            movieLibrary.push(movie);
+            added++;
+          }
+        }
+        const sourceName = importedLibrary.name ? ` from "${importedLibrary.name}"` : '';
+        alert(`Merged ${added} new movie${added === 1 ? '' : 's'}${sourceName}.`);
+      }
+      renderMovies();
+    } catch (error) {
+      alert(`Could not load library: ${error.message || 'invalid file'}`);
+    } finally {
+      if (mode === 'import') importFile.value = '';
+      else mergeFile.value = '';
+    }
+  }
+
+  function saveLibrary() {
+    const name = libraryNameInput.value.trim() || 'Waffles Movies';
+    libraryNameInput.value = name;
+    const now = new Date().toISOString();
+    const portableLibrary = {
+      format: 'waffles-movies-library',
+      version: 1,
+      name,
+      savedAt: now,
+      stats: {
+        movieCount: movieLibrary.length,
+        moviesWithDriveLinks: movieLibrary.filter(movie => Boolean(movie.link)).length,
+        moviesWithPosters: movieLibrary.filter(movie => Boolean(movie.poster)).length
+      },
+      movies: movieLibrary.map(movie => ({
+        title: movie.title,
+        link: movie.link,
+        poster: movie.poster
+      }))
+    };
+
+    const json = JSON.stringify(portableLibrary, null, 2);
+    const url = URL.createObjectURL(new Blob([json], { type: 'application/json;charset=utf-8' }));
+    const anchor = document.createElement('a');
+    const safeName = name
+      .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '')
+      .replace(/\s+/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_+|_+$/g, '') || 'Waffles_Movies';
+    anchor.href = url;
+    anchor.download = `${safeName}.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
+
+  document.getElementById('importButton').addEventListener('click', () => importFile.click());
+  document.getElementById('saveButton').addEventListener('click', saveLibrary);
+  document.getElementById('mergeButton').addEventListener('click', () => mergeFile.click());
+  importFile.addEventListener('change', () => loadLibraryFile(importFile.files[0], 'import'));
+  mergeFile.addEventListener('change', () => loadLibraryFile(mergeFile.files[0], 'merge'));
+  search.addEventListener('input', renderMovies);
+  renderMovies();
+})();
+</script>
+</body>
+</html>

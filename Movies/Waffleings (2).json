@@ -1,0 +1,28 @@
+{
+  "format": "waffles-movies-library",
+  "version": 1,
+  "name": "Waffleings",
+  "savedAt": "2026-10-27T01:36:43.378Z",
+  "stats": {
+    "movieCount": 3,
+    "moviesWithDriveLinks": 3,
+    "moviesWithPosters": 3
+  },
+  "movies": [
+    {
+      "title": "Ratatouille",
+      "link": "https://drive.google.com/file/d/1kjVDdXtZ3-O0SndMHeIwMXe4jNZJ4w2C/view",
+      "poster": "https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcQRUYn6k1MCkCJiy9cpwzwrmH272y6kt_GomQxiwwmqhyu0QXED"
+    },
+    {
+      "title": "Deadpool",
+      "link": "https://drive.google.com/file/d/1OWTLMQNtkpvzwKBmo3seq6SZQYU2HuBz/view",
+      "poster": "https://m.media-amazon.com/images/M/MV5BNzY3ZWU5NGQtOTViNC00ZWVmLTliNjAtNzViNzlkZWQ4YzQ4XkEyXkFqcGc@._V1_.jpg"
+    },
+    {
+      "title": "Cars 2",
+      "link": "https://drive.google.com/file/d/1T5jIBhOjz_ubq_cjG37lXUuvIpjETt3j/view",
+      "poster": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcStys5krCYxKZjsFVmUbJBUI6-NCT_jbYtYYijYw1on4OB6-HWhm3eZP_G7WVZqJpJPXSlM&s=10"
+    }
+  ]
+}

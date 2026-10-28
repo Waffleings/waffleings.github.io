@@ -39,10 +39,10 @@ body.player-open { overflow: hidden; }
 </head>
 <body>
 <header>
-  <h1>Waffles Movies</h1>
+  <h1>Waffles Theater</h1>
   <div class="controls">
     <label for="libraryName">Library name</label>
-    <input id="libraryName" type="text" value="Waffles Movies" maxlength="80" aria-label="Library name">
+    <input id="libraryName" type="text" value="Waffles Theater" maxlength="80" aria-label="Library name">
     <button type="button" id="importButton" title="Replace this library with an imported library">Import Library</button>
     <button type="button" id="saveButton" title="Save this library as a portable JSON file">Save Library</button>
     <button type="button" id="mergeButton" title="Add movies from another library without duplicates">Merge Library</button>
@@ -52,7 +52,7 @@ body.player-open { overflow: hidden; }
 </header>
 <input id="search" type="search" placeholder="Search movies" aria-label="Search movies">
 <span id="count"></span>
-<section class="grid" id="grid" aria-label="Movie library"></section>
+<section class="grid" id="grid" aria-label="Theater library"></section>
 
 <div id="playerOverlay" class="player-overlay" hidden>
   <section class="player-dialog" role="dialog" aria-modal="true" aria-labelledby="playerTitle">
@@ -63,15 +63,15 @@ body.player-open { overflow: hidden; }
     <div class="player-frame-wrap">
       <iframe id="drivePlayer" title="Google Drive movie player" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>
     </div>
-    <p class="player-note">Playing inside Waffles Movies. If playback is blocked, check that the Google Drive video is shared with the viewers.</p>
+    <p class="player-note">Playing inside Waffles Theater. If playback is blocked, check that the Google Drive video is shared with the viewers.</p>
   </section>
 </div>
 
-<!-- The movie entries are embedded here so the page works as a self-contained catalog. Save Library exports them as portable JSON. -->
-<script id="waffles-movies-library" type="application/json">[]</script>
+<!-- Movie entries are embedded here for a self-contained catalog. Saved libraries use the Waffles Theater format. -->
+<script id="waffles-theater-library" type="application/json">[]</script>
 <script>
 (() => {
-  const libraryData = document.getElementById('waffles-movies-library');
+  const libraryData = document.getElementById('waffles-theater-library');
   let movieLibrary = readEmbeddedLibrary();
   const grid = document.getElementById('grid');
   const search = document.getElementById('search');
@@ -148,7 +148,7 @@ body.player-open { overflow: hidden; }
         card.rel = 'noopener noreferrer';
         const driveFileId = getDriveFileId(movie.link);
         card.setAttribute('aria-label', driveFileId
-          ? `Play ${movie.title} inside Waffles Movies`
+          ? `Play ${movie.title} inside Waffles Theater`
           : `Open ${movie.title} in a new tab`);
         if (driveFileId) {
           card.addEventListener('click', event => {
@@ -192,7 +192,7 @@ body.player-open { overflow: hidden; }
       const empty = document.createElement('div');
       empty.className = 'empty';
       empty.textContent = movieLibrary.length === 0
-        ? 'This library is empty. Use Waffles Library Creator to add movies, then choose Import Library.'
+        ? 'This library is empty. Use Waffles Theater Library Creator to add movies, then choose Import Library.'
         : 'No movies found.';
       grid.appendChild(empty);
     }
@@ -232,7 +232,8 @@ body.player-open { overflow: hidden; }
     // Import previous standalone HTML libraries for backwards compatibility.
     const doc = new DOMParser().parseFromString(text, 'text/html');
     const htmlName = (doc.querySelector('h1')?.textContent || doc.title || fallbackName || '').trim();
-    const embedded = doc.querySelector('#waffles-movies-library');
+    const embedded = Array.from(doc.querySelectorAll('script[type="application/json"][id$="-library"]'))
+      .find(node => /^waffles-[a-z0-9-]+-library$/i.test(node.id));
     if (embedded) {
       return unpackLibrary(JSON.parse(embedded.textContent), htmlName);
     }
@@ -256,7 +257,7 @@ body.player-open { overflow: hidden; }
       return { name: htmlName || fallbackName, movies: uniqueMovies };
     }
 
-    // Compatibility with earlier Waffles Movies HTML versions using a JS array.
+    // Compatibility with earlier standalone catalog HTML versions using a JS array.
     const oldScript = text.match(/const\s+movieLibrary\s*=\s*(\[[\s\S]*?\])\s*;/);
     if (oldScript) return unpackLibrary(JSON.parse(oldScript[1]), htmlName);
 
@@ -328,11 +329,11 @@ body.player-open { overflow: hidden; }
   }
 
   function saveLibrary() {
-    const name = libraryNameInput.value.trim() || 'Waffles Movies';
+    const name = libraryNameInput.value.trim() || 'Waffles Theater';
     libraryNameInput.value = name;
     const now = new Date().toISOString();
     const portableLibrary = {
-      format: 'waffles-movies-library',
+      format: 'waffles-theater-library',
       version: 1,
       name,
       savedAt: now,
@@ -355,7 +356,7 @@ body.player-open { overflow: hidden; }
       .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '')
       .replace(/\s+/g, '_')
       .replace(/_+/g, '_')
-      .replace(/^_+|_+$/g, '') || 'Waffles_Movies';
+      .replace(/^_+|_+$/g, '') || 'Waffles_Theater';
     anchor.href = url;
     anchor.download = `${safeName}.json`;
     document.body.appendChild(anchor);

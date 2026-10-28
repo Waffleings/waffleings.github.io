@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Waffles Library Creator</title>
+<title>Waffles Theater Library Creator</title>
 <style>
   * { box-sizing: border-box; }
   body { margin: 20px; color: #111; background: #fff; font: 16px Arial, Helvetica, sans-serif; max-width: 1100px; }
@@ -43,8 +43,7 @@
 </style>
 </head>
 <body>
-<h1>Waffles Library Creator</h1>
-<p class="subtle">Make a movie library for Waffles Movies. Movie posters you upload are compressed and stored inside the JSON library, so you don't need separate image files.</p>
+<h1>Waffles Theater Library Creator</h1>
 
 <div class="name-row">
   <label for="libraryName">Library name</label>
@@ -348,7 +347,415 @@
     const name = libraryName.value.trim() || 'My Movies';
     libraryName.value = name;
     const payload = {
-      format: 'waffles-movies-library',
+      format: 'waffles-theater-library',
+      version: 1,
+      name,
+      savedAt: new Date().toISOString(),
+      stats: {
+        movieCount: movies.length,
+        moviesWithDriveLinks: movies.filter(movie => Boolean(movie.link)).length,
+        moviesWithPosters: movies.filter(movie => Boolean(movie.poster)).length
+      },
+      movies: movies.map(movie => ({ title: movie.title, link: movie.link, poster: movie.poster }))
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl; anchor.download = `${safeFilename(name)}.json`;
+    document.body.appendChild(anchor); anchor.click(); anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
+    say(`Saved “${name}” with ${movies.length} movie${movies.length === 1 ? '' : 's'} as JSON.`);
+  }
+
+  async function loadJsonFile(file, mode) {
+    if (!file) return;
+    try {
+      const parsed = unpackLibrary(JSON.parse(await file.text()), file.name.replace(/\.json$/i, '').replace(/[_-]+/g, ' '));
+      if (mode === 'import') {
+        if (!confirm(`Open “${parsed.name || file.name}” and replace the current ${movies.length}-movie library with ${parsed.movies.length} movies?`)) return;
+        movies = parsed.movies;
+        libraryName.value = parsed.name || file.name.replace(/\.json$/i, '').replace(/[_-]+/g, ' ');
+        resetForm(); renderMovies(); say(`Opened ${movies.length} movies from “${libraryName.value}”.`);
+      } else {
+        let added = 0;
+        for (const movie of parsed.movies) {
+          if (!movies.some(existing => isDuplicate(existing, movie))) { movies.push(movie); added++; }
+        }
+        renderMovies(); say(`Merged ${added} movie${added === 1 ? '' : 's'} from “${parsed.name || file.name}”.`);
+      }
+    } catch (error) {
+      say(`Could not open library: ${error.message || 'invalid JSON file'}`, true);
+    } finally {
+      if (mode === 'import') importFile.value = '';
+      else mergeFile.value = '';
+    }
+  }
+
+  $('saveButton').addEventListener('click', saveLibrary);
+  $('importButton').addEventListener('click', () => importFile.click());
+  $('mergeButton').addEventListener('click', () => mergeFile.click());
+  importFile.addEventListener('change', () => loadJsonFile(importFile.files[0], 'import'));
+  mergeFile.addEventListener('change', () => loadJsonFile(mergeFile.files[0], 'merge'));
+  $('clearButton').addEventListener('click', () => {
+    if (!movies.length || confirm(`Remove all ${movies.length} movies from this unsaved working library?`)) {
+      movies = []; resetForm(); renderMovies(); say('Cleared the working library. Save it to export an empty library.');
+    }
+  });
+  renderMovies();
+})();
+</script>
+</body>
+</html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Waffles Theater Library Creator</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 20px; color: #111; background: #fff; font: 16px Arial, Helvetica, sans-serif; max-width: 1100px; }
+  h1 { font-size: 23px; font-weight: 400; margin: 0 0 8px; }
+  p { line-height: 1.45; }
+  .subtle { color: #444; font-size: 14px; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0 18px; }
+  label { display: block; font-size: 14px; margin: 0 0 5px; }
+  input, button { font: inherit; color: #111; }
+  input[type="text"], input[type="url"], input[type="search"] { width: 100%; min-width: 0; border: 1px solid #999; border-radius: 2px; padding: 8px; background: #fff; }
+  input[type="file"] { max-width: 100%; }
+  button { border: 1px solid #999; background: #fff; border-radius: 2px; padding: 7px 10px; cursor: pointer; }
+  button:hover { background: #f2f2f2; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .name-row { max-width: 480px; margin-bottom: 18px; }
+  .form-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; max-width: 850px; }
+  .field { min-width: 0; }
+  .full { grid-column: 1 / -1; }
+  .poster-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+  #posterPreview { display: block; width: 110px; height: 160px; object-fit: cover; background: #f3f3f3; border: 1px solid #ddd; }
+  #posterPlaceholder { width: 110px; height: 160px; display: grid; place-items: center; text-align: center; padding: 8px; background: #f3f3f3; border: 1px solid #ddd; font-size: 12px; color: #555; }
+  .hidden { display: none !important; }
+  #status { min-height: 20px; margin: 12px 0; font-size: 14px; }
+  .library-header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 22px 0 10px; border-top: 1px solid #ddd; padding-top: 15px; }
+  .library-header h2 { font-size: 18px; font-weight: 400; margin: 0; }
+  #movieCount { font-size: 14px; color: #444; }
+  #movieList { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+  .movie { border: 1px solid #ddd; padding: 10px; display: grid; grid-template-columns: 65px minmax(0, 1fr); gap: 10px; align-items: start; min-width: 0; }
+  .movie img { width: 65px; height: 95px; object-fit: cover; background: #f2f2f2; }
+  .movie-info { min-width: 0; }
+  .movie-title { font-weight: 600; overflow-wrap: anywhere; margin-bottom: 5px; }
+  .movie-link { font-size: 12px; color: #444; overflow-wrap: anywhere; margin-bottom: 9px; }
+  .movie-actions { display: flex; flex-wrap: wrap; gap: 5px; }
+  .movie-actions button { font-size: 13px; padding: 5px 7px; }
+  #emptyList { font-size: 14px; color: #444; padding: 8px 0; }
+  @media(max-width: 620px) { body { margin: 12px; } .form-grid, .poster-controls { grid-template-columns: minmax(0, 1fr); } .full { grid-column: auto; } }
+</style>
+</head>
+<body>
+<h1>Waffles Theater Library Creator</h1>
+
+<div class="name-row">
+  <label for="libraryName">Library name</label>
+  <input id="libraryName" type="text" maxlength="80" value="My Movies" placeholder="e.g. Comedy Movies">
+</div>
+
+<form id="movieForm">
+  <div class="form-grid">
+    <div class="field">
+      <label for="movieTitle">Movie title</label>
+      <input id="movieTitle" type="text" maxlength="160" required placeholder="Movie title">
+    </div>
+    <div class="field">
+      <label for="driveLink">Google Drive link</label>
+      <input id="driveLink" type="url" required placeholder="https://drive.google.com/file/d/…/view">
+    </div>
+    <div class="field full">
+      <label>Poster image (choose one option)</label>
+      <div class="poster-controls">
+        <div>
+          <label for="posterFile">Upload poster image</label>
+          <input id="posterFile" type="file" accept="image/*">
+          <p class="subtle">Uploaded images are resized and embedded in the library.</p>
+          <label for="posterUrl">Or paste an image URL</label>
+          <input id="posterUrl" type="url" placeholder="https://example.com/poster.jpg">
+        </div>
+        <div>
+          <img id="posterPreview" class="hidden" alt="Poster preview">
+          <div id="posterPlaceholder">Poster preview</div>
+        </div>
+      </div>
+    </div>
+    <div class="field full toolbar">
+      <button id="addButton" type="submit">Add Movie</button>
+      <button id="cancelEditButton" type="button" class="hidden">Cancel Edit</button>
+    </div>
+  </div>
+</form>
+
+<div class="toolbar">
+  <button id="saveButton" type="button">Save Library (.json)</button>
+  <button id="importButton" type="button">Open Library (.json)</button>
+  <button id="mergeButton" type="button">Merge Library (.json)</button>
+  <button id="clearButton" type="button">Clear All Movies</button>
+  <input id="importFile" type="file" accept=".json,application/json" class="hidden">
+  <input id="mergeFile" type="file" accept=".json,application/json" class="hidden">
+</div>
+<div id="status" role="status" aria-live="polite"></div>
+
+<div class="library-header">
+  <h2>Movies in this library</h2>
+  <span id="movieCount">0 movies</span>
+</div>
+<div id="emptyList">No movies added yet. Enter a title, a Drive link, and a poster image above.</div>
+<div id="movieList"></div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const libraryName = $('libraryName');
+  const movieForm = $('movieForm');
+  const movieTitle = $('movieTitle');
+  const driveLink = $('driveLink');
+  const posterFile = $('posterFile');
+  const posterUrl = $('posterUrl');
+  const posterPreview = $('posterPreview');
+  const posterPlaceholder = $('posterPlaceholder');
+  const addButton = $('addButton');
+  const cancelEditButton = $('cancelEditButton');
+  const movieList = $('movieList');
+  const movieCount = $('movieCount');
+  const emptyList = $('emptyList');
+  const status = $('status');
+  const importFile = $('importFile');
+  const mergeFile = $('mergeFile');
+  let movies = [];
+  let selectedPosterData = '';
+  let editingIndex = -1;
+
+  function say(message, isError = false) {
+    status.textContent = message;
+    status.style.color = isError ? '#b00020' : '#222';
+  }
+
+  function isHttpUrl(value) {
+    try {
+      const url = new URL(value);
+      return url.protocol === 'https:' || url.protocol === 'http:';
+    } catch { return false; }
+  }
+
+  function safeFilename(name) {
+    return (name || 'My_Movies').replace(/[<>:"/\\|?*\u0000-\u001f]/g, '')
+      .replace(/\s+/g, '_').replace(/_+/g, '_').replace(/^_+|_+$/g, '') || 'My_Movies';
+  }
+
+  function canonicalLink(value) {
+    try {
+      const url = new URL(value);
+      if (url.hostname === 'drive.google.com' || url.hostname.endsWith('.google.com')) {
+        const match = url.pathname.match(/\/file\/d\/([^/]+)/i);
+        const id = (match && match[1]) || url.searchParams.get('id');
+        if (id) return `drive:${id}`;
+      }
+      url.hash = '';
+      return url.href.replace(/\/$/, '');
+    } catch { return String(value || '').trim(); }
+  }
+
+  function isDuplicate(a, b) {
+    if (a.link && b.link) return canonicalLink(a.link) === canonicalLink(b.link);
+    return a.title.toLocaleLowerCase() === b.title.toLocaleLowerCase();
+  }
+
+  function normalizeMovie(value) {
+    if (!value || typeof value !== 'object') return null;
+    const title = String(value.title || value.name || '').trim();
+    const link = String(value.link || value.url || value.driveUrl || '').trim();
+    const poster = String(value.poster || value.cover || value.image || '').trim();
+    if (!title || !link) return null;
+    return { title, link, poster };
+  }
+
+  function unpackLibrary(payload, fallbackName = '') {
+    let list;
+    let name = fallbackName;
+    if (Array.isArray(payload)) list = payload;
+    else if (payload && typeof payload === 'object') {
+      name = String(payload.name || payload.libraryName || fallbackName || '').trim();
+      if (Array.isArray(payload.movies)) list = payload.movies;
+      else if (Array.isArray(payload.library)) list = payload.library;
+    }
+    if (!Array.isArray(list)) throw new Error('This JSON file does not contain a movie list.');
+    const normalized = list.map(normalizeMovie).filter(Boolean);
+    return { name, movies: normalized };
+  }
+
+  async function compressImage(file) {
+    if (!file || !file.type.startsWith('image/')) throw new Error('Choose a valid image file.');
+    if (file.size > 25 * 1024 * 1024) throw new Error('That image is over 25 MB. Please choose a smaller file.');
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('The image could not be read.'));
+      reader.onload = () => resolve(reader.result);
+      reader.readAsDataURL(file);
+    });
+    const image = await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('The selected file could not be decoded as an image.'));
+      img.src = dataUrl;
+    });
+    const maxW = 700, maxH = 1050;
+    const scale = Math.min(1, maxW / image.naturalWidth, maxH / image.naturalHeight);
+    const width = Math.max(1, Math.round(image.naturalWidth * scale));
+    const height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width; canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Your browser could not prepare the poster image.');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(image, 0, 0, width, height);
+    return canvas.toDataURL('image/jpeg', 0.84);
+  }
+
+  function showPreview(source) {
+    if (!source) {
+      posterPreview.classList.add('hidden');
+      posterPlaceholder.classList.remove('hidden');
+      posterPreview.removeAttribute('src');
+      return;
+    }
+    posterPreview.onload = () => {
+      posterPreview.classList.remove('hidden');
+      posterPlaceholder.classList.add('hidden');
+    };
+    posterPreview.onerror = () => {
+      posterPreview.classList.add('hidden');
+      posterPlaceholder.classList.remove('hidden');
+      posterPlaceholder.textContent = 'Preview unavailable';
+    };
+    posterPlaceholder.textContent = 'Poster preview';
+    posterPreview.src = source;
+  }
+
+  function currentPoster() {
+    return selectedPosterData || posterUrl.value.trim();
+  }
+
+  function resetForm() {
+    movieForm.reset();
+    posterFile.value = '';
+    posterUrl.value = '';
+    selectedPosterData = '';
+    editingIndex = -1;
+    addButton.textContent = 'Add Movie';
+    cancelEditButton.classList.add('hidden');
+    showPreview('');
+  }
+
+  function renderMovies() {
+    movieList.replaceChildren();
+    movieCount.textContent = `${movies.length} movie${movies.length === 1 ? '' : 's'}`;
+    emptyList.classList.toggle('hidden', movies.length > 0);
+    for (let index = 0; index < movies.length; index++) {
+      const movie = movies[index];
+      const card = document.createElement('article');
+      card.className = 'movie';
+      if (movie.poster) {
+        const img = document.createElement('img');
+        img.alt = `${movie.title} poster`;
+        img.loading = 'lazy';
+        img.src = movie.poster;
+        img.onerror = () => { img.removeAttribute('src'); img.alt = 'Poster unavailable'; };
+        card.appendChild(img);
+      } else {
+        const placeholder = document.createElement('div');
+        placeholder.style.cssText = 'width:65px;height:95px;background:#f2f2f2;display:grid;place-items:center;text-align:center;font-size:11px;color:#555;';
+        placeholder.textContent = 'No poster';
+        card.appendChild(placeholder);
+      }
+      const info = document.createElement('div'); info.className = 'movie-info';
+      const title = document.createElement('div'); title.className = 'movie-title'; title.textContent = movie.title;
+      const link = document.createElement('div'); link.className = 'movie-link'; link.textContent = movie.link;
+      const actions = document.createElement('div'); actions.className = 'movie-actions';
+      const edit = document.createElement('button'); edit.type = 'button'; edit.textContent = 'Edit';
+      edit.addEventListener('click', () => beginEdit(index));
+      const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = 'Remove';
+      remove.addEventListener('click', () => {
+        movies.splice(index, 1);
+        if (editingIndex === index) resetForm();
+        else if (editingIndex > index) editingIndex--;
+        renderMovies(); say(`Removed “${movie.title}”.`);
+      });
+      actions.append(edit, remove);
+      info.append(title, link, actions); card.appendChild(info); movieList.appendChild(card);
+    }
+  }
+
+  function beginEdit(index) {
+    const movie = movies[index];
+    movieTitle.value = movie.title;
+    driveLink.value = movie.link;
+    posterFile.value = '';
+    selectedPosterData = movie.poster.startsWith('data:image/') ? movie.poster : '';
+    posterUrl.value = selectedPosterData ? '' : movie.poster;
+    editingIndex = index;
+    addButton.textContent = 'Save Changes';
+    cancelEditButton.classList.remove('hidden');
+    showPreview(movie.poster);
+    movieTitle.focus();
+    say(`Editing “${movie.title}”.`);
+  }
+
+  posterFile.addEventListener('change', async () => {
+    const file = posterFile.files && posterFile.files[0];
+    if (!file) return;
+    say('Preparing poster image…');
+    try {
+      selectedPosterData = await compressImage(file);
+      posterUrl.value = '';
+      showPreview(selectedPosterData);
+      say(`Poster ready: ${Math.round(selectedPosterData.length / 1024)} KB after compression.`);
+    } catch (error) {
+      selectedPosterData = '';
+      showPreview('');
+      say(error.message || 'Could not load this poster.', true);
+      posterFile.value = '';
+    }
+  });
+  posterUrl.addEventListener('input', () => {
+    if (posterUrl.value.trim()) { selectedPosterData = ''; posterFile.value = ''; }
+    showPreview(currentPoster());
+  });
+
+  movieForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const title = movieTitle.value.trim();
+    const link = driveLink.value.trim();
+    const poster = currentPoster();
+    if (!title) return say('Enter a movie title.', true);
+    if (!isHttpUrl(link)) return say('Enter a valid HTTP or HTTPS Drive link.', true);
+    if (!poster) return say('Upload a poster image or paste an image URL.', true);
+    if (!poster.startsWith('data:image/') && !isHttpUrl(poster)) return say('The poster URL must begin with http:// or https://.', true);
+    const movie = { title, link, poster };
+    const duplicateIndex = movies.findIndex((existing, index) => index !== editingIndex && isDuplicate(existing, movie));
+    if (duplicateIndex !== -1) return say(`That Drive link is already in the library as “${movies[duplicateIndex].title}”.`, true);
+    if (editingIndex >= 0) {
+      movies[editingIndex] = movie;
+      say(`Updated “${title}”.`);
+    } else {
+      movies.push(movie);
+      say(`Added “${title}”.`);
+    }
+    resetForm(); renderMovies();
+  });
+  cancelEditButton.addEventListener('click', () => { resetForm(); say('Edit cancelled.'); });
+
+  function saveLibrary() {
+    const name = libraryName.value.trim() || 'My Movies';
+    libraryName.value = name;
+    const payload = {
+      format: 'waffles-theater-library',
       version: 1,
       name,
       savedAt: new Date().toISOString(),

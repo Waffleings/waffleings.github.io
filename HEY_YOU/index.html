@@ -1,306 +1,229 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="color-scheme" content="dark">
-  <title>Waffleings Video Player</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>Video Player</title>
   <style>
     :root {
-      color-scheme: dark;
+      color-scheme: light;
       font-family: Arial, Helvetica, sans-serif;
-      background: #101114;
-      color: #f3f4f6;
+      background: #fff;
+      color: #111;
     }
+
     * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 18px; }
-    .app { width: min(900px, 100%); }
-    .app:fullscreen { width: 100%; max-width: 1100px; height: 100%; padding: 20px; overflow: auto; background: #101114; }
-    .heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
-    h1 { font-size: 19px; margin: 0; font-weight: 700; }
-    .sub { color: #9ca3af; font-size: 12px; margin-top: 4px; }
-    button { border: 0; border-radius: 9px; padding: 10px 14px; background: #343741; color: white; font-size: 13px; font-weight: 600; cursor: pointer; }
-    button:hover { background: #454956; }
-    button:active { transform: translateY(1px); }
-    button.primary { background: #655cf5; }
-    button.primary:hover { background: #776fff; }
-    .screen { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 12px; overflow: hidden; }
-    #player, #player iframe { position: absolute; inset: 0; width: 100%; height: 100%; }
-    .status { min-height: 18px; margin: 9px 2px 10px; color: #aeb2bd; font-size: 12px; }
-    .controls { background: #1b1d23; border: 1px solid #30333c; border-radius: 12px; padding: 12px; }
-    .timeline-row { display: flex; align-items: center; gap: 10px; margin-bottom: 11px; }
-    input[type="range"] { accent-color: #8179ff; cursor: pointer; min-width: 0; }
-    #seek { flex: 1; }
-    .time { color: #c4c7d0; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-    .button-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
-    .button-row button { min-width: 42px; }
-    #playPause { min-width: 76px; }
-    .spacer { flex: 1; }
-    .volume { width: 95px; }
-    .hint { color: #858a96; font-size: 11px; margin: 12px 2px 0; line-height: 1.5; }
-    @media (max-width: 520px) {
-      body { padding: 10px; }
-      .controls { padding: 9px; }
-      .button-row { gap: 5px; }
-      .button-row button { padding: 9px 10px; }
-      .volume { width: 72px; }
-      .heading { align-items: flex-start; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: #fff;
     }
+
+    body { padding: 8px; }
+
+    main {
+      width: 100%;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .video-box {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      min-height: 200px;
+      background: #000;
+    }
+
+    #player {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    #controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid #777;
+      border-radius: 0;
+      background: #fff;
+      color: #111;
+      padding: 6px 11px;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:hover:not(:disabled) { background: #eee; }
+    button:focus-visible { outline: 2px solid #111; outline-offset: 2px; }
+    button:disabled { color: #888; border-color: #ccc; cursor: default; }
+
+    #message {
+      margin: 8px 0 0;
+      min-height: 1.2em;
+      font-size: 14px;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
-  <main class="app">
-    <header class="heading">
-      <div>
-        <h1>Video Player</h1>
-        <div class="sub" id="videoLabel">Video ID is read from the page URL</div>
-      </div>
-    </header>
+  <main>
+    <div class="video-box" aria-label="YouTube video player"><div id="player"></div></div>
 
-    <section class="screen" aria-label="Video player">
-      <div id="player"></div>
-    </section>
-    <div class="status" id="status" role="status" aria-live="polite">Enter a video ID or YouTube URL to begin.</div>
+    <div id="controls">
+      <button id="play" type="button" disabled>Play</button>
+      <button id="pause" type="button" disabled>Pause</button>
+      <button id="back" type="button" disabled>−10 seconds</button>
+      <button id="forward" type="button" disabled>+10 seconds</button>
+    </div>
 
-    <section class="controls" aria-label="Playback controls">
-      <div class="timeline-row">
-        <span class="time" id="currentTime">0:00</span>
-        <input id="seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek through video">
-        <span class="time" id="duration">0:00</span>
-      </div>
-      <div class="button-row">
-        <button id="back" type="button" title="Rewind 10 seconds">−10s</button>
-        <button id="playPause" class="primary" type="button">Play</button>
-        <button id="forward" type="button" title="Fast-forward 10 seconds">+10s</button>
-        <div class="spacer"></div>
-        <button id="mute" type="button">Mute</button>
-        <input class="volume" id="volume" type="range" min="0" max="100" value="80" aria-label="Volume">
-        <button id="fullscreen" type="button" title="Fullscreen">⛶</button>
-      </div>
-    </section>
-    <p class="hint">Some videos cannot be embedded by their owners. Those videos will show YouTube's playback restriction message instead.</p>
+    <p id="message" role="status" aria-live="polite"></p>
   </main>
 
   <script>
-    'use strict';
+    "use strict";
 
-    const statusEl = document.getElementById('status');
-    const seekEl = document.getElementById('seek');
-    const currentTimeEl = document.getElementById('currentTime');
-    const durationEl = document.getElementById('duration');
-    const playPauseEl = document.getElementById('playPause');
-    const muteEl = document.getElementById('mute');
-    const volumeEl = document.getElementById('volume');
-
+    const message = document.getElementById("message");
+    const buttons = ["play", "pause", "back", "forward"]
+      .map((id) => document.getElementById(id));
     let player = null;
     let playerReady = false;
-    let seeking = false;
-    let updateTimer = null;
-
-    function setStatus(message) {
-      statusEl.textContent = message;
-    }
-
-    function formatTime(seconds) {
-      if (!Number.isFinite(seconds) || seconds < 0) seconds = 0;
-      seconds = Math.floor(seconds);
-      const hours = Math.floor(seconds / 3600);
-      const minutes = Math.floor((seconds % 3600) / 60);
-      const secs = seconds % 60;
-      return hours > 0
-        ? `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
-        : `${minutes}:${String(secs).padStart(2, '0')}`;
-    }
 
     function getVideoId(value) {
-      const text = value.trim();
-      if (!text) return null;
+      if (typeof value !== "string") return null;
+      let input = value.trim().replace(/\*+$/, "");
+      if (!input) return null;
 
-      // Accept a raw 11-character YouTube ID.
-      if (/^[a-zA-Z0-9_-]{11}$/.test(text)) return text;
-
-      // Also accept common YouTube URL formats.
+      // Accept either a bare YouTube ID or a standard YouTube URL.
       try {
-        const url = new URL(text.includes('://') ? text : `https://${text}`);
-        const host = url.hostname.replace(/^www\./, '').toLowerCase();
-        if (host === 'youtu.be') {
-          const id = url.pathname.split('/').filter(Boolean)[0];
-          return id && /^[a-zA-Z0-9_-]{11}$/.test(id) ? id : null;
-        }
-        if (host === 'youtube.com' || host === 'm.youtube.com' || host === 'youtube-nocookie.com') {
-          let id = url.searchParams.get('v');
-          if (!id) {
-            const parts = url.pathname.split('/').filter(Boolean);
-            if (['embed', 'shorts', 'live', 'v'].includes(parts[0])) id = parts[1];
+        const url = new URL(input);
+        const host = url.hostname.toLowerCase().replace(/^www\./, "");
+        if (host === "youtu.be") {
+          input = url.pathname.split("/").filter(Boolean)[0] || "";
+        } else if (
+          host === "youtube.com" ||
+          host === "m.youtube.com" ||
+          host === "youtube-nocookie.com"
+        ) {
+          const pathParts = url.pathname.split("/").filter(Boolean);
+          if (url.searchParams.has("v")) {
+            input = url.searchParams.get("v") || "";
+          } else if (["embed", "shorts", "live", "v"].includes(pathParts[0])) {
+            input = pathParts[1] || "";
+          } else {
+            return null;
           }
-          return id && /^[a-zA-Z0-9_-]{11}$/.test(id) ? id : null;
+        } else {
+          return null;
         }
       } catch (_) {
-        return null;
+        // Not a URL; treat it as a video ID.
       }
-      return null;
+
+      input = input.trim().replace(/\*+$/, "");
+      return /^[A-Za-z0-9_-]{11}$/.test(input) ? input : null;
     }
 
-    function loadVideo(value) {
-      const videoId = getVideoId(value);
-      if (!videoId) {
-        setStatus('That does not look like a valid YouTube video ID or URL.');
-        return;
-      }
-      if (!playerReady) {
-        pendingVideoId = videoId;
-        setStatus('Connecting to YouTube player…');
-        return;
-      }
-      player.loadVideoById(videoId);
-      setStatus(`Loading video ${videoId}…`);
+    const params = new URLSearchParams(window.location.search);
+    const rawVideo = params.get("v") || "";
+    const videoId = getVideoId(rawVideo);
+
+    if (!videoId) {
+      message.textContent = rawVideo
+        ? "That does not look like a valid YouTube video ID or URL."
+        : "Add a YouTube video ID to the URL using ?v=VIDEO_ID";
+    } else {
+      message.textContent = "Loading video…";
+      loadYouTubeAPI();
     }
 
-    let pendingVideoId = null;
+    function loadYouTubeAPI() {
+      if (window.YT && window.YT.Player) {
+        createPlayer();
+        return;
+      }
 
-    // The YouTube IFrame Player API calls this when its script has loaded.
-    window.onYouTubeIframeAPIReady = function () {
-      const playerVars = {
-        autoplay: 0,
-        controls: 0,
-        disablekb: 0,
-        playsinline: 1,
-        rel: 0
+      window.onYouTubeIframeAPIReady = createPlayer;
+      const script = document.createElement("script");
+      script.src = "https://www.youtube.com/iframe_api";
+      script.async = true;
+      script.onerror = function () {
+        message.textContent = "Could not load the YouTube player API. Check your connection or content blocker.";
       };
-      if (/^https?:$/.test(location.protocol)) playerVars.origin = location.origin;
-      player = new YT.Player('player', {
-        width: '100%',
-        height: '100%',
-        playerVars,
+      document.head.appendChild(script);
+    }
+
+    function createPlayer() {
+      if (player || !videoId || !window.YT || !window.YT.Player) return;
+
+      player = new YT.Player("player", {
+        width: "960",
+        height: "540",
+        videoId: videoId,
+        playerVars: {
+          autoplay: 0,
+          controls: 1,
+          enablejsapi: 1,
+          playsinline: 1,
+          rel: 0,
+          origin: window.location.origin
+        },
         events: {
-          onReady: function (event) {
+          onReady: function () {
             playerReady = true;
-            event.target.setVolume(Number(volumeEl.value));
-            setStatus('Player ready.');
-            if (pendingVideoId) {
-              const id = pendingVideoId;
-              pendingVideoId = null;
-              loadVideo(id);
-            }
-            updateTimer = window.setInterval(updateControls, 300);
-          },
-          onStateChange: function (event) {
-            if (event.data === YT.PlayerState.PLAYING) {
-              playPauseEl.textContent = 'Pause';
-              setStatus('Playing');
-            } else if (event.data === YT.PlayerState.PAUSED) {
-              playPauseEl.textContent = 'Play';
-              setStatus('Paused');
-            } else if (event.data === YT.PlayerState.ENDED) {
-              playPauseEl.textContent = 'Play';
-              setStatus('Video ended');
-            } else if (event.data === YT.PlayerState.BUFFERING) {
-              setStatus('Buffering…');
-            }
-            updateControls();
+            buttons.forEach((button) => { button.disabled = false; });
+            message.textContent = "Video ready.";
           },
           onError: function (event) {
-            playPauseEl.textContent = 'Play';
-            const messages = {
-              2: 'Invalid video ID or parameter.',
-              5: 'The video could not be played in the HTML5 player.',
-              100: 'Video not found, removed, or private.',
-              101: 'The video owner does not allow embedded playback.',
-              150: 'The video owner does not allow embedded playback.',
-              153: 'YouTube could not verify the request. Try opening the page from its GitHub Pages HTTPS address.'
+            playerReady = false;
+            buttons.forEach((button) => { button.disabled = true; });
+            const reasons = {
+              2: "The video ID is invalid.",
+              5: "The video could not be played in the HTML5 player.",
+              100: "The video was removed, made private, or could not be found.",
+              101: "The video owner does not allow playback on other websites.",
+              150: "The video owner does not allow playback on other websites.",
+              153: "YouTube could not verify the player request. Try opening the page directly in a regular browser."
             };
-            setStatus(messages[event.data] || `YouTube player error (${event.data}).`);
+            message.textContent = reasons[event.data] || ("YouTube player error: " + event.data);
           }
         }
       });
-    };
-
-    function updateControls() {
-      if (!playerReady || seeking) return;
-      try {
-        const duration = player.getDuration() || 0;
-        const current = player.getCurrentTime() || 0;
-        currentTimeEl.textContent = formatTime(current);
-        durationEl.textContent = formatTime(duration);
-        seekEl.value = duration > 0 ? String(Math.round((current / duration) * 1000)) : '0';
-        muteEl.textContent = player.isMuted() ? 'Unmute' : 'Mute';
-      } catch (_) {
-        // The player may not have loaded a video yet.
-      }
     }
 
-    playPauseEl.addEventListener('click', function () {
-      if (!playerReady) return;
-      const state = player.getPlayerState();
-      if (state === YT.PlayerState.PLAYING || state === YT.PlayerState.BUFFERING) player.pauseVideo();
-      else player.playVideo();
-    });
-
-    document.getElementById('back').addEventListener('click', function () {
-      if (playerReady) player.seekTo(Math.max(0, player.getCurrentTime() - 10), true);
-    });
-
-    document.getElementById('forward').addEventListener('click', function () {
-      if (playerReady) player.seekTo(Math.min(player.getDuration() || Infinity, player.getCurrentTime() + 10), true);
-    });
-
-    seekEl.addEventListener('pointerdown', function () { seeking = true; });
-    seekEl.addEventListener('pointerup', function () { seeking = false; });
-    seekEl.addEventListener('input', function () {
-      if (!playerReady) return;
-      const duration = player.getDuration() || 0;
-      currentTimeEl.textContent = formatTime(duration * (Number(seekEl.value) / 1000));
-    });
-    seekEl.addEventListener('change', function () {
-      if (!playerReady) return;
-      const duration = player.getDuration() || 0;
-      if (duration > 0) player.seekTo(duration * (Number(seekEl.value) / 1000), true);
-      seeking = false;
-    });
-
-    muteEl.addEventListener('click', function () {
-      if (!playerReady) return;
-      if (player.isMuted()) player.unMute();
-      else player.mute();
-      updateControls();
-    });
-
-    volumeEl.addEventListener('input', function () {
-      if (playerReady) {
-        player.setVolume(Number(volumeEl.value));
-        if (Number(volumeEl.value) > 0 && player.isMuted()) player.unMute();
-      }
-    });
-
-    document.getElementById('fullscreen').addEventListener('click', function () {
-      const app = document.querySelector('.app');
-      if (document.fullscreenElement) document.exitFullscreen?.();
-      else app.requestFullscreen?.();
-    });
-
-    // The final URL path segment is the YouTube video ID.
-    // Example: /repository-name/VIDEO_ID
-    const pathSegments = location.pathname.split('/').filter(Boolean);
-    let pathVideoId = '';
-    try {
-      pathVideoId = pathSegments.length ? decodeURIComponent(pathSegments[pathSegments.length - 1]) : '';
-    } catch (_) {
-      pathVideoId = '';
+    function callPlayer(method) {
+      if (!playerReady || !player || typeof player[method] !== "function") return;
+      player[method]();
     }
 
-    if (/^[a-zA-Z0-9_-]{11}$/.test(pathVideoId)) {
-      document.getElementById('videoLabel').textContent = `Video ID: ${pathVideoId}`;
-      loadVideo(pathVideoId);
-    } else {
-      setStatus('Add an 11-character YouTube video ID to the end of this page URL.');
-    }
+    document.getElementById("play").addEventListener("click", function () {
+      callPlayer("playVideo");
+    });
 
-    // Load YouTube's official player API.
-    const apiScript = document.createElement('script');
-    apiScript.src = 'https://www.youtube.com/iframe_api';
-    apiScript.async = true;
-    apiScript.onerror = function () { setStatus('Could not load YouTube player API. Check your connection or content blockers.'); };
-    document.head.appendChild(apiScript);
+    document.getElementById("pause").addEventListener("click", function () {
+      callPlayer("pauseVideo");
+    });
+
+    document.getElementById("back").addEventListener("click", function () {
+      if (!playerReady || !player) return;
+      player.seekTo(Math.max(0, player.getCurrentTime() - 10), true);
+    });
+
+    document.getElementById("forward").addEventListener("click", function () {
+      if (!playerReady || !player) return;
+      player.seekTo(player.getCurrentTime() + 10, true);
+    });
   </script>
 </body>
 </html>

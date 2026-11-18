@@ -9,6 +9,7 @@ let active,proxy,initialization,bookmarks=[];
 try{const saved=JSON.parse(localStorage.getItem('odNavigatorBookmarks'));if(Array.isArray(saved))bookmarks=saved.filter(item=>typeof item?.url==='string'&&/^https?:\/\//.test(item.url)).slice(0,40)}catch{}
 try{$('#engine').value=localStorage.getItem('odNavigatorEngine')==='google'?'google':'duckduckgo'}catch{}
 const status=message=>{ $('#status').textContent=message; if(window.parent!==window && stageBridgeToken) window.parent.postMessage({channel:STAGE_CHANNEL,token:stageBridgeToken,type:'status',status:String(message)},'*'); };
+function setDisplayMode(enabled){document.documentElement.classList.toggle('display-only',Boolean(enabled));}
 function save(key,value){try{localStorage.setItem(key,value);return true}catch{status('This browser could not save your preference D:');return false}}
 async function initialize(){if(initialization)return initialization;initialization=(async()=>{
  if(!isSecureContext||!navigator.serviceWorker)throw new Error('Open the hosted browser app over HTTPS; Scramjet needs its own secure service-worker origin.');
@@ -48,8 +49,16 @@ $('#wisp-test').onclick=async()=>{const button=$('#wisp-test');let url;try{url=v
 if(window.parent!==window && stageBridgeToken){
   window.addEventListener('message',event=>{
     if(event.source!==window.parent || !event.data || event.data.channel!==STAGE_CHANNEL || event.data.token!==stageBridgeToken) return;
-    if(event.data.type==='navigate' && typeof event.data.url==='string') navigate(event.data.url);
-    else if(event.data.type==='show-settings') $('#settings').showModal();
+    if(event.data.type==='navigate' && typeof event.data.url==='string'){
+      setDisplayMode(false);
+      navigate(event.data.url);
+    }else if(event.data.type==='display' && typeof event.data.url==='string'){
+      setDisplayMode(true);
+      navigate(event.data.url);
+    }else if(event.data.type==='browser-mode'){
+      setDisplayMode(false);
+      sync();
+    }else if(event.data.type==='show-settings') $('#settings').showModal();
   });
 }
 

@@ -32,3 +32,15 @@ html.embedded dialog { max-width:calc(100% - 20px); width:calc(100% - 20px); max
   html.embedded .toolbar { gap:2px; }
   html.embedded .toolbar button { padding:3px 4px; }
 }
+
+
+/* Website-only display mode, activated by the TurboWarp bridge. The Scramjet
+   viewport stays interactive, but GooberNet's browser chrome is removed. */
+html.display-only body { background: #fff; }
+html.display-only header,
+html.display-only .toolbar,
+html.display-only #bookmarks,
+html.display-only #status { display: none !important; }
+html.display-only #viewport { position: relative; flex: 1 1 100%; width: 100%; height: 100%; min-height: 0; }
+html.display-only #viewport iframe { position: absolute; inset: 0; width: 100%; height: 100%; }
+html.display-only #start { display: none !important; }

@@ -44,3 +44,45 @@ html.display-only #status { display: none !important; }
 html.display-only #viewport { position: relative; flex: 1 1 100%; width: 100%; height: 100%; min-height: 0; }
 html.display-only #viewport iframe { position: absolute; inset: 0; width: 100%; height: 100%; }
 html.display-only #start { display: none !important; }
+
+
+/* Keep the Scramjet page confined to the viewport. Explicit positioning also
+   prevents the nested browsing frame from overlapping the browser controls
+   in embedded TurboWarp stages. */
+#viewport {
+  position: relative;
+  isolation: isolate;
+  min-width: 0;
+  min-height: 0;
+}
+#viewport > iframe {
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  max-height: 100%;
+  border: 0;
+  pointer-events: auto;
+  touch-action: auto;
+}
+#viewport > iframe[hidden] {
+  display: none !important;
+  pointer-events: none !important;
+}
+html.embedded header,
+html.embedded .toolbar,
+html.embedded #bookmarks,
+html.embedded #status {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+}
+html.embedded #viewport {
+  flex: 1 1 0;
+  z-index: 1;
+}
